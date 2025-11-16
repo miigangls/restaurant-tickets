@@ -18,6 +18,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - restaurant-network
 
   adminer:
     image: adminer:latest
@@ -28,7 +30,37 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - restaurant-network
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: restaurant-tickets-jenkins
+    restart: unless-stopped
+    user: root
+    ports:
+      - '8081:8080'
+      - '50000:50000'
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+    environment:
+      - JENKINS_OPTS=--prefix=/jenkins
+    networks:
+      - restaurant-network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8080/login || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+networks:
+  restaurant-network:
+    driver: bridge
 
 volumes:
   postgres_data:
+  jenkins_home:
 

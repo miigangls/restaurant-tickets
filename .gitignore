@@ -35,6 +35,10 @@ coverage/
 
 # Docker volumes
 postgres_data/
+jenkins_home/
+
+# Jenkins
+.jenkins/
 
 # Prisma
 *.db

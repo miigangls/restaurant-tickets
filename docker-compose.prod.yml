@@ -37,10 +37,35 @@ services:
     networks:
       - restaurant-network
 
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: restaurant-tickets-jenkins-prod
+    restart: unless-stopped
+    user: root
+    ports:
+      - '${JENKINS_PORT:-8080}:8080'
+      - '${JENKINS_AGENT_PORT:-50000}:50000'
+    volumes:
+      - jenkins_home_prod:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+    environment:
+      - JENKINS_OPTS=--prefix=${JENKINS_PREFIX:-/jenkins}
+      - JAVA_OPTS=-Xmx2048m -Xms1024m
+    networks:
+      - restaurant-network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8080/login || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
 networks:
   restaurant-network:
     driver: bridge
 
 volumes:
   postgres_data_prod:
+  jenkins_home_prod:
 

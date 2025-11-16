@@ -55,6 +55,7 @@ La API estará disponible en `http://localhost:3000` y la documentación Swagger
 ## 📚 Documentación API
 
 Una vez iniciada la aplicación, accede a la documentación Swagger en:
+
 - **Desarrollo**: `http://localhost:3000/docs`
 
 ## 🧪 Testing
@@ -98,6 +99,7 @@ npm run start:docker     # Construye y ejecuta en Docker
 La mayoría de los endpoints requieren autenticación mediante JWT. Para autenticarte:
 
 1. Registra un usuario en `POST /auth/register` o usa las credenciales del seed:
+
    - Admin: `admin@demo.com` / `Admin123!`
 
 2. Realiza login en `POST /auth/login`
@@ -110,28 +112,34 @@ La mayoría de los endpoints requieren autenticación mediante JWT. Para autenti
 ## 🌐 Endpoints Principales
 
 ### Auth
+
 - `POST /auth/register` - Registro de usuario
 - `POST /auth/login` - Login
 
 ### Tickets (Públicos)
+
 - `GET /tickets` - Listar tickets activos
 - `GET /tickets/:id` - Obtener ticket por ID
 
 ### Tickets (Protegidos, ADMIN recomendado)
+
 - `POST /tickets` - Crear ticket
 - `PATCH /tickets/:id` - Actualizar ticket
 - `DELETE /tickets/:id` - Eliminar ticket (soft delete)
 
 ### Orders (Protegidos)
+
 - `POST /orders` - Crear orden
 - `GET /orders/me` - Obtener órdenes del usuario actual
 - `GET /orders/:id` - Obtener orden por ID
 
 ### Payments (Protegidos)
+
 - `POST /payments` - Registrar pago
 - `GET /payments/:id` - Obtener pago por ID
 
 ### Users (Protegidos)
+
 - `GET /users/me` - Obtener perfil actual
 - `GET /users/:id` - Obtener usuario por ID
 - `PATCH /users/me` - Actualizar perfil
@@ -153,6 +161,7 @@ docker-compose -f docker-compose.prod.yml up -d
 ## 📊 Estructura de Base de Datos
 
 ### Modelos principales:
+
 - **User**: Usuarios del sistema (roles: ADMIN, CUSTOMER)
 - **Ticket**: Productos del menú (catálogo)
 - **Order**: Órdenes de pedidos
@@ -161,12 +170,41 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ## 🔄 CI/CD
 
-El proyecto incluye GitHub Actions workflow que ejecuta:
+### Jenkins Pipeline
+
+El proyecto incluye configuración completa de Jenkins para CI/CD. Ver [JENKINS.md](JENKINS.md) para más detalles.
+
+**Inicio rápido:**
+
+```bash
+# Iniciar Jenkins
+./jenkins-setup.sh
+
+# O manualmente
+docker-compose up -d jenkins
+```
+
+Acceder a Jenkins en `http://localhost:8081`
+
+El pipeline de Jenkins ejecuta:
+
 - Instalación de dependencias
+- Linting y formateo
 - Generación de Prisma Client
-- Migraciones de base de datos
 - Build de la aplicación
 - Tests
+- Construcción de imagen Docker
+- Migraciones de base de datos
+- Deployment automático
+
+**Scripts disponibles:**
+
+- `./jenkins-setup.sh` - Configuración inicial de Jenkins
+- `./deploy.sh` - Deployment manual de la aplicación
+
+### GitHub Actions
+
+El proyecto también incluye GitHub Actions workflow para CI básico
 
 ## 📝 Estándares de Calidad
 
