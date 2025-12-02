@@ -7,4 +7,3 @@ export class UpdateProfileDto {
   @IsString()
   name?: string;
 }
-

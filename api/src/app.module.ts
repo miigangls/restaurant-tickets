@@ -25,4 +25,3 @@ import { PaymentsModule } from './payments/payments.module';
   providers: [AppService],
 })
 export class AppModule {}
-

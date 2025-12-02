@@ -10,4 +10,3 @@ import { TicketsModule } from '../tickets/tickets.module';
   exports: [OrdersService],
 })
 export class OrdersModule {}
-

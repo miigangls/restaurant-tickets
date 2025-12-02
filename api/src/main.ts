@@ -42,7 +42,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  
+
   logger.log('═══════════════════════════════════════════════════════════');
   logger.log(`🚀 Application is running on: http://localhost:${port}`);
   logger.log(`📚 Swagger documentation: http://localhost:${port}/docs`);

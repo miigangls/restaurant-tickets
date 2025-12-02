@@ -20,10 +20,14 @@ export class TicketsService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.ticket.findUnique({
+  async findOne(id: string) {
+    const ticket = await this.prisma.ticket.findUnique({
       where: { id },
     });
+    if (!ticket) {
+      throw new NotFoundException(`Ticket with ID ${id} not found`);
+    }
+    return ticket;
   }
 
   async update(id: string, updateTicketDto: UpdateTicketDto) {

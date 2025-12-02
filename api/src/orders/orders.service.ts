@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { TicketsService } from '../tickets/tickets.service';
 import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
 
 const TAX_RATE = 0.19;
 
@@ -16,15 +17,20 @@ export class OrdersService {
   async create(userId: string, createOrderDto: CreateOrderDto) {
     const { items } = createOrderDto;
 
+    // Verify user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
     // Validate tickets and calculate totals
     let subtotal = new Decimal(0);
     const orderItems = [];
 
     for (const item of items) {
       const ticket = await this.ticketsService.findOne(item.ticketId);
-      if (!ticket) {
-        throw new NotFoundException(`Ticket with ID ${item.ticketId} not found`);
-      }
       if (!ticket.isActive) {
         throw new BadRequestException(`Ticket ${ticket.title} is not active`);
       }
@@ -49,50 +55,60 @@ export class OrdersService {
     const total = subtotal.add(tax);
 
     // Create order with items in a transaction
-    const order = await this.prisma.$transaction(async (tx) => {
-      // Create order
-      const order = await tx.order.create({
-        data: {
-          userId,
-          subtotal,
-          tax,
-          total,
-          status: 'PENDING',
-          items: {
-            create: orderItems,
-          },
-        },
-        include: {
-          items: {
-            include: {
-              ticket: true,
-            },
-          },
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
-          },
-        },
-      });
-
-      // Update stock for each ticket
-      for (const item of items) {
-        const ticket = await this.ticketsService.findOne(item.ticketId);
-        await tx.ticket.update({
-          where: { id: item.ticketId },
+    try {
+      const order = await this.prisma.$transaction(async (tx) => {
+        // Create order
+        const order = await tx.order.create({
           data: {
-            stock: ticket.stock - item.quantity,
+            userId,
+            subtotal,
+            tax,
+            total,
+            status: 'PENDING',
+            items: {
+              create: orderItems,
+            },
+          },
+          include: {
+            items: {
+              include: {
+                ticket: true,
+              },
+            },
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+              },
+            },
           },
         });
-      }
+
+        // Update stock for each ticket
+        for (const item of items) {
+          const ticket = await this.ticketsService.findOne(item.ticketId);
+          await tx.ticket.update({
+            where: { id: item.ticketId },
+            data: {
+              stock: ticket.stock - item.quantity,
+            },
+          });
+        }
+
+        return order;
+      });
 
       return order;
-    });
-
-    return order;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2003') {
+          // Foreign key constraint failed
+          throw new BadRequestException('Invalid user or ticket reference');
+        }
+      }
+      throw error;
+    }
   }
 
   findByUser(userId: string) {
@@ -117,8 +133,8 @@ export class OrdersService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.order.findUnique({
+  async findOne(id: string) {
+    const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
         items: {
@@ -136,5 +152,11 @@ export class OrdersService {
         },
       },
     });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID ${id} not found`);
+    }
+
+    return order;
   }
 }

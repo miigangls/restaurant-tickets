@@ -6,4 +6,3 @@ export class AppService {
     return 'Restaurant Tickets API is running!';
   }
 }
-

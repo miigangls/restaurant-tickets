@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -11,7 +6,7 @@ import { map } from 'rxjs/operators';
 export class JsonResponseInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const response = context.switchToHttp().getResponse();
-    
+
     // Set JSON content type header
     response.setHeader('Content-Type', 'application/json');
 
@@ -23,4 +18,3 @@ export class JsonResponseInterceptor implements NestInterceptor {
     );
   }
 }
-

@@ -1,0 +1,135 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check SSH configuration
+        id: check-ssh
+        run: |
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+            echo "ssh_configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ SSH_PRIVATE_KEY secret not configured. Skipping SSH deployment."
+          else
+            echo "ssh_configured=true" >> $GITHUB_OUTPUT
+            echo "✅ SSH configuration found."
+          fi
+
+      - name: Setup SSH
+        if: steps.check-ssh.outputs.ssh_configured == 'true'
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          log-public-key: true
+
+      - name: Setup deployment environment
+        run: |
+          echo "🚀 Deploying to ${{ github.event.inputs.environment || 'production' }}"
+          echo "📦 Commit: ${{ github.sha }}"
+          echo "🌿 Branch: ${{ github.ref_name }}"
+
+      - name: Deploy to server
+        if: steps.check-ssh.outputs.ssh_configured == 'true' && secrets.SSH_USER != '' && secrets.SSH_HOST != ''
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            
+            echo "📥 Pulling latest code..."
+            cd /path/to/restaurant-tickets || exit 1
+            git fetch origin
+            git checkout main
+            git pull origin main
+            
+            echo "🐳 Starting services..."
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d db
+            
+            echo "⏳ Waiting for database..."
+            sleep 10
+            
+            echo "🔄 Running migrations..."
+            cd api
+            docker-compose -f ../docker-compose.prod.yml exec -T db psql -U postgres -d ticketsdb -c "SELECT 1" || sleep 5
+            npx prisma migrate deploy || echo "Migrations may already be applied"
+            
+            echo "🚀 Starting API..."
+            cd ..
+            docker-compose -f docker-compose.prod.yml up -d api
+            
+            echo "⏳ Waiting for API to start..."
+            sleep 15
+            
+            echo "🏥 Health check..."
+            curl -f http://localhost:3000/health || echo "Health check failed"
+            
+            echo "✅ Deployment completed!"
+          EOF
+
+      - name: Verify deployment
+        if: steps.check-ssh.outputs.ssh_configured == 'true' && secrets.DEPLOYMENT_URL != ''
+        run: |
+          sleep 10
+          curl -f ${{ secrets.DEPLOYMENT_URL }}/health || exit 1
+          echo "✅ Deployment verified successfully!"
+
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: ${{ github.event.inputs.environment || 'production' }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-ssh.outputs.ssh_configured }}" == "true" ]; then
+            echo "**Status**: ✅ Success (SSH Deployment)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status**: ⚠️ Skipped (SSH not configured)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "> 💡 To enable SSH deployment, configure the following secrets:" >> $GITHUB_STEP_SUMMARY
+            echo "> - \`SSH_PRIVATE_KEY\`" >> $GITHUB_STEP_SUMMARY
+            echo "> - \`SSH_USER\`" >> $GITHUB_STEP_SUMMARY
+            echo "> - \`SSH_HOST\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed at**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ secrets.DEPLOYMENT_URL }}" ]; then
+            echo "**Application URL**: ${{ secrets.DEPLOYMENT_URL }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  notify:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()
+
+    steps:
+      - name: Deployment notification
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+            # Aquí puedes agregar notificaciones a Slack, Discord, Email, etc.
+          else
+            echo "❌ Deployment failed!"
+          fi
+

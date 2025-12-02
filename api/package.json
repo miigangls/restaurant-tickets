@@ -15,7 +15,13 @@
     "prisma:generate": "prisma generate",
     "seed": "ts-node prisma/seed.ts",
     "start:docker": "docker build -t tickets-api:local . && docker run --env-file .env -p 3000:3000 --name tickets-api --rm tickets-api:local",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:unit": "jest --testPathIgnorePatterns=e2e",
+    "test:ci": "jest --coverage --maxWorkers=2 --ci"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -65,22 +71,5 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
   }
 }

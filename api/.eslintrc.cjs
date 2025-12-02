@@ -6,16 +6,13 @@ module.exports = {
     sourceType: 'module',
   },
   plugins: ['@typescript-eslint/eslint-plugin'],
-  extends: [
-    'plugin:@typescript-eslint/recommended',
-    'plugin:prettier/recommended',
-  ],
+  extends: ['plugin:@typescript-eslint/recommended', 'plugin:prettier/recommended'],
   root: true,
   env: {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.cjs'],
+  ignorePatterns: ['.eslintrc.cjs', 'dist/**', 'node_modules/**'],
   rules: {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
@@ -23,4 +20,3 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 'off',
   },
 };
-

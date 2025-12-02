@@ -13,7 +13,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   async onModuleInit() {
     try {
       await this.$connect();
-      
+
       // Extract database connection info from DATABASE_URL
       const databaseUrl = this.configService.get<string>('DATABASE_URL');
       if (databaseUrl) {
@@ -21,7 +21,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         const host = url.hostname;
         const port = url.port || '5432';
         const database = url.pathname.split('/')[1]?.split('?')[0] || 'unknown';
-        
+
         this.logger.log('✅ Database connection established successfully');
         this.logger.log(`📍 Host: ${host}`);
         this.logger.log(`🔌 Port: ${port}`);
@@ -41,4 +41,3 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     this.logger.log('🔌 Database connection closed');
   }
 }
-

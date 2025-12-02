@@ -8,4 +8,3 @@ import { TicketsController } from './tickets.controller';
   exports: [TicketsService],
 })
 export class TicketsModule {}
-
